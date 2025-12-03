@@ -167,18 +167,20 @@ func (h *HighLoader) InitComponent() fyne.CanvasObject {
 		}
 
 		dialog.ShowFileSave(func(writer fyne.URIWriteCloser, err error) {
-			jsonData, err := json.MarshalIndent(cfg, "", "  ")
-			if err != nil {
-				dialog.ShowError(fmt.Errorf("error save config %w", err), h.window)
-				return
-			}
-			_, err = writer.Write(jsonData)
-			if err != nil {
-				dialog.ShowError(fmt.Errorf("error save config %w", err), h.window)
-				return
-			}
+			if writer != nil {
+				jsonData, err := json.MarshalIndent(cfg, "", "  ")
+				if err != nil {
+					dialog.ShowError(fmt.Errorf("error save config %w", err), h.window)
+					return
+				}
+				_, err = writer.Write(jsonData)
+				if err != nil {
+					dialog.ShowError(fmt.Errorf("error save config %w", err), h.window)
+					return
+				}
 
-			dialog.ShowInformation("Success", "Successfully saved config", h.window)
+				dialog.ShowInformation("Success", "Successfully saved config", h.window)
+			}
 		}, h.window)
 	})
 	buttonSaveConfig.Importance = widget.HighImportance
