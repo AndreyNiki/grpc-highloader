@@ -22,28 +22,26 @@ import (
 )
 
 const (
-	buttonStartRequestName      = "Start"
-	buttonStopRequestName       = "Stop"
-	buttonRemoveRequestName     = "Remove"
-	buttonAddKeyValueName       = "+"
-	labelServicesName           = "Services"
-	labelMethodsName            = "Methods"
-	labelRPSName                = "~Req/s"
-	labelDurationSecondsName    = "Stop After"
-	labelRequestSettingName     = "Request Settings"
-	labelMessageName            = "Message"
-	labelMetadataName           = "Metadata"
-	labelMetadataKeyName        = "Key"
-	labelMetadataValueName      = "Value"
-	labelAdditionalOptionsName  = "Additional Options"
-	labelRequestCardName        = "Request"
-	labelRequestDeadlineName    = "Request Deadline"
-	labelTimeoutBetweenReqsName = "Timeout Between Requests"
+	buttonStartRequestName     = "Start"
+	buttonStopRequestName      = "Stop"
+	buttonRemoveRequestName    = "Remove"
+	buttonAddKeyValueName      = "+"
+	labelServicesName          = "Services"
+	labelMethodsName           = "Methods"
+	labelRPSName               = "~Req/s"
+	labelDurationSecondsName   = "Stop After"
+	labelRequestSettingName    = "Request Settings"
+	labelMessageName           = "Message"
+	labelMetadataName          = "Metadata"
+	labelMetadataKeyName       = "Key"
+	labelMetadataValueName     = "Value"
+	labelAdditionalOptionsName = "Additional Options"
+	labelRequestCardName       = "Request"
+	labelRequestDeadlineName   = "Request Deadline"
 )
 
 const (
-	rpsDefault         = "100"
-	timeoutReqsDefault = "10"
+	rpsDefault = "100"
 )
 
 // RequestsCardsHolder struct for management request cards.
@@ -262,9 +260,11 @@ func (r *RequestCard) stopLoadingRequests(fr *FormRequest) {
 	}
 	fr.CancelCh <- struct{}{}
 	fr.TimeTrackerCh <- struct{}{}
-	r.buttonStop.Disable()
-	r.buttonStart.Enable()
-	r.buttonRemove.Enable()
+	fyne.DoAndWait(func() {
+		r.buttonStop.Disable()
+		r.buttonStart.Enable()
+		r.buttonRemove.Enable()
+	})
 }
 
 // startLoadingRequests run requests with specified params from Form.
@@ -311,16 +311,6 @@ func (r *RequestCard) startLoadingRequests(fr *FormRequest) error {
 	r.stopRequestsManager(fr, cancel)
 
 	go func() {
-		for {
-			if ctx.Err() != nil {
-				return
-			}
-			fmt.Println(fr.Metrics.RequestCounter.Value.Load())
-			time.Sleep(1 * time.Second)
-		}
-	}()
-
-	go func() {
 		if err := loader.Run(ctx); err != nil {
 			r.stopLoadingRequests(fr)
 			return
@@ -335,21 +325,17 @@ func (r *RequestCard) stopRequestsManager(fr *FormRequest, cancel context.Cancel
 		go func() {
 			for {
 				select {
-				case <-fr.CancelCh:
-					cancel()
-					return
 				case <-time.After(fr.StopAfter.GetValue()):
-					cancel()
+					r.stopLoadingRequests(fr)
 					return
 				}
 			}
 		}()
-	} else {
-		go func() {
-			<-fr.CancelCh
-			cancel()
-		}()
 	}
+	go func() {
+		<-fr.CancelCh
+		cancel()
+	}()
 }
 
 // makeServicesMethods make services and methods for GUI form.
